@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#15121f">
+<title>マイ・カラオケ曲帳</title>
+<style>
+:root{
+  --bg:#15121f; --bg2:#1d1830; --panel:#221c38; --panel2:#2a2344;
+  --line:#3a3258; --txt:#f3eefe; --muted:#a79fc4; --muted2:#7d76a0;
+  --gold:#f5c451; --gold2:#e0a93a;
+  --c-sing:#4ad6a0;      /* 歌える */
+  --c-try:#f5c451;       /* 歌ってみたい */
+  --c-req:#f278c0;       /* リクエスト */
+  --c-fr:#7aa7ff;        /* 友人 */
+  --up:#ff8a5c; --down:#6fd0ff; --flat:#a79fc4;
+  --radius:16px;
+  --safe-b:env(safe-area-inset-bottom);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:
+    radial-gradient(1200px 500px at 50% -200px, #3a2c5e 0%, transparent 60%),
+    radial-gradient(800px 400px at 100% 0%, #2a2150 0%, transparent 55%),
+    var(--bg);
+  color:var(--txt);
+  font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","Yu Gothic",system-ui,sans-serif;
+  font-feature-settings:"palt";
+  -webkit-text-size-adjust:100%;
+  min-height:100vh;
+}
+.wrap{max-width:720px;margin:0 auto;padding:0 14px 120px}
+
+/* ヘッダー */
+header{position:sticky;top:0;z-index:30;padding-top:env(safe-area-inset-top);
+  background:linear-gradient(180deg,rgba(21,18,31,.96),rgba(21,18,31,.86));
+  backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.headin{max-width:720px;margin:0 auto;padding:12px 14px 10px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand .mic{font-size:24px;filter:drop-shadow(0 0 10px rgba(245,196,81,.5))}
+.brand h1{margin:0;font-size:19px;letter-spacing:.04em;font-weight:800}
+.brand .sub{margin-left:auto;font-size:12px;color:var(--muted);font-weight:600}
+.menubtn{margin-left:8px;width:38px;height:38px;border-radius:11px;border:1px solid var(--line);
+  background:var(--panel);color:var(--txt);font-size:17px;cursor:pointer;display:grid;place-items:center}
+
+/* 検索 */
+.searchbar{margin-top:11px;position:relative}
+.searchbar input{width:100%;padding:12px 40px 12px 40px;border-radius:13px;border:1px solid var(--line);
+  background:var(--panel);color:var(--txt);font-size:16px;outline:none}
+.searchbar input::placeholder{color:var(--muted2)}
+.searchbar .ico{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:15px}
+.searchbar .clr{position:absolute;right:8px;top:50%;transform:translateY(-50%);border:0;background:transparent;
+  color:var(--muted);font-size:20px;cursor:pointer;width:30px;height:30px;border-radius:50%;display:none}
+.searchbar .clr.on{display:block}
+
+/* カテゴリタブ */
+.tabs{display:flex;gap:7px;overflow-x:auto;margin-top:11px;padding-bottom:2px;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;border:1px solid var(--line);background:var(--panel);color:var(--muted);
+  padding:8px 13px;border-radius:999px;font-size:13.5px;font-weight:700;cursor:pointer;white-space:nowrap;
+  display:flex;align-items:center;gap:7px;transition:transform .08s}
+.tab .dot{width:8px;height:8px;border-radius:50%;background:var(--muted2)}
+.tab .n{font-size:12px;color:var(--muted2);font-weight:800}
+.tab.active{color:#15121f;background:var(--gold);border-color:var(--gold)}
+.tab.active .n{color:#15121f}
+.tab.active.c-sing{background:var(--c-sing);border-color:var(--c-sing)}
+.tab.active.c-try{background:var(--c-try);border-color:var(--c-try)}
+.tab.active.c-req{background:var(--c-req);border-color:var(--c-req)}
+.tab.active.c-fr{background:var(--c-fr);border-color:var(--c-fr)}
+.tab.active .dot{display:none}
+
+/* サブフィルタ（メニュー） */
+.filters{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px;align-items:center}
+.chip{border:1px solid var(--line);background:transparent;color:var(--muted);
+  padding:6px 11px;border-radius:999px;font-size:12.5px;font-weight:700;cursor:pointer}
+.chip.on{background:var(--panel2);color:var(--txt);border-color:#574d80}
+.spacer{flex:1}
+.sortsel{background:var(--panel);color:var(--txt);border:1px solid var(--line);border-radius:10px;
+  padding:6px 9px;font-size:12.5px;font-weight:700}
+
+/* 件数 */
+.count{margin:13px 2px 8px;font-size:12.5px;color:var(--muted);font-weight:600}
+.count b{color:var(--gold)}
+
+/* カード */
+.list{display:flex;flex-direction:column;gap:10px}
+.card{position:relative;border:1px solid var(--line);background:linear-gradient(180deg,var(--panel),var(--bg2));
+  border-radius:var(--radius);padding:13px 14px;cursor:pointer;overflow:hidden}
+.card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--muted2)}
+.card.c-sing::before{background:var(--c-sing)}
+.card.c-try::before{background:var(--c-try)}
+.card.c-req::before{background:var(--c-req)}
+.card.c-fr::before{background:var(--c-fr)}
+.card .top{display:flex;align-items:flex-start;gap:10px}
+.title{font-size:16.5px;font-weight:800;line-height:1.35;flex:1;letter-spacing:.01em}
+.artist{margin-top:3px;font-size:13px;color:var(--muted);font-weight:600}
+.keychip{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-width:46px;height:46px;border-radius:12px;border:1px solid var(--line);background:var(--bg);padding:0 6px}
+.keychip .kv{font-size:15px;font-weight:900;line-height:1}
+.keychip .kl{font-size:9px;color:var(--muted2);margin-top:2px;font-weight:700}
+.keychip.up{border-color:rgba(255,138,92,.45)} .keychip.up .kv{color:var(--up)}
+.keychip.down{border-color:rgba(111,208,255,.45)} .keychip.down .kv{color:var(--down)}
+.keychip.flat .kv{color:var(--flat)}
+.keychip.none .kv{color:var(--muted2);font-size:13px}
+.tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.tag{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:7px;background:var(--panel2);color:var(--muted)}
+.tag.voice{color:#d9d2f5}
+.tag.duet{background:rgba(242,120,192,.16);color:#f7a8d8}
+.tag.year{background:rgba(122,167,255,.14);color:#9cc0ff}
+.tag.cat{font-weight:800}
+.tag.cat.c-sing{background:rgba(74,214,160,.15);color:var(--c-sing)}
+.tag.cat.c-try{background:rgba(245,196,81,.15);color:var(--c-try)}
+.tag.cat.c-req{background:rgba(242,120,192,.15);color:var(--c-req)}
+.tag.cat.c-fr{background:rgba(122,167,255,.15);color:var(--c-fr)}
+.memo{margin-top:9px;font-size:12.5px;color:var(--muted);line-height:1.5;
+  background:var(--bg);border-radius:9px;padding:7px 10px;border:1px dashed var(--line)}
+
+.empty{text-align:center;padding:60px 20px;color:var(--muted)}
+.empty .em{font-size:40px;margin-bottom:10px}
+.empty p{margin:6px 0;font-size:14px}
+
+/* FAB */
+.fab{position:fixed;right:18px;bottom:calc(20px + var(--safe-b));z-index:40;
+  height:56px;padding:0 22px;border-radius:999px;border:0;cursor:pointer;
+  background:linear-gradient(135deg,var(--gold),var(--gold2));color:#15121f;
+  font-size:16px;font-weight:900;letter-spacing:.02em;
+  box-shadow:0 10px 28px rgba(245,196,81,.4);display:flex;align-items:center;gap:8px}
+.fab .p{font-size:22px;line-height:1}
+
+/* モーダル */
+.overlay{position:fixed;inset:0;z-index:60;background:rgba(8,6,14,.6);backdrop-filter:blur(3px);
+  display:none;align-items:flex-end;justify-content:center}
+.overlay.open{display:flex}
+.sheet{width:100%;max-width:720px;max-height:92vh;overflow-y:auto;background:var(--bg2);
+  border:1px solid var(--line);border-bottom:0;border-radius:22px 22px 0 0;
+  padding:8px 18px calc(26px + var(--safe-b));-webkit-overflow-scrolling:touch}
+.grip{width:42px;height:5px;border-radius:3px;background:var(--line);margin:8px auto 14px}
+.sheet h2{margin:0 0 16px;font-size:18px;font-weight:800}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12.5px;color:var(--muted);font-weight:700;margin-bottom:6px}
+.field input[type=text],.field input[type=number],.field select,.field textarea{
+  width:100%;padding:11px 12px;border-radius:11px;border:1px solid var(--line);
+  background:var(--panel);color:var(--txt);font-size:16px;outline:none;font-family:inherit}
+.field textarea{resize:vertical;min-height:62px;line-height:1.5}
+.field .hint{font-size:11px;color:var(--muted2);margin-top:5px}
+.catrow{display:flex;gap:7px;flex-wrap:wrap}
+.catpick{flex:1;min-width:calc(50% - 4px);border:1px solid var(--line);background:var(--panel);
+  color:var(--muted);padding:11px 8px;border-radius:11px;font-size:13.5px;font-weight:800;cursor:pointer;text-align:center}
+.catpick.sel{color:#15121f}
+.catpick.sel.c-sing{background:var(--c-sing);border-color:var(--c-sing)}
+.catpick.sel.c-try{background:var(--c-try);border-color:var(--c-try)}
+.catpick.sel.c-req{background:var(--c-req);border-color:var(--c-req)}
+.catpick.sel.c-fr{background:var(--c-fr);border-color:var(--c-fr)}
+.keyrow{display:flex;gap:8px;align-items:center}
+.keyrow input{flex:1}
+.kbtn{width:42px;height:44px;border-radius:11px;border:1px solid var(--line);background:var(--panel);
+  color:var(--txt);font-size:19px;font-weight:800;cursor:pointer}
+.voicerow,.duetrow{display:flex;gap:7px}
+.vpick{flex:1;border:1px solid var(--line);background:var(--panel);color:var(--muted);
+  padding:10px 6px;border-radius:11px;font-size:13.5px;font-weight:700;cursor:pointer;text-align:center}
+.vpick.sel{background:var(--panel2);color:var(--txt);border-color:#574d80}
+.actions{display:flex;gap:10px;margin-top:8px}
+.btn{flex:1;padding:14px;border-radius:13px;border:0;font-size:16px;font-weight:800;cursor:pointer}
+.btn.save{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#15121f}
+.btn.cancel{background:var(--panel);color:var(--txt);border:1px solid var(--line)}
+.btn.del{background:rgba(255,90,90,.14);color:#ff8a8a;border:1px solid rgba(255,90,90,.35)}
+.btn.full{width:100%}
+
+/* メニューシート項目 */
+.menuitem{display:flex;align-items:center;gap:12px;width:100%;text-align:left;
+  padding:15px 14px;border-radius:13px;border:1px solid var(--line);background:var(--panel);
+  color:var(--txt);font-size:15px;font-weight:700;cursor:pointer;margin-bottom:9px}
+.menuitem .mi{font-size:19px;width:24px;text-align:center}
+.menuitem .md{font-size:11.5px;color:var(--muted);font-weight:600;margin-top:2px}
+.menuitem.danger{color:#ff8a8a}
+
+.toast{position:fixed;left:50%;bottom:calc(92px + var(--safe-b));transform:translateX(-50%) translateY(20px);
+  background:#0c0a16;border:1px solid var(--line);color:var(--txt);padding:11px 18px;border-radius:12px;
+  font-size:13.5px;font-weight:700;z-index:80;opacity:0;transition:.25s;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* タッチ/フォーカス対策 */
+@media (hover:hover) and (pointer:fine){
+  .card:hover{border-color:#574d80}
+  .tab:hover{transform:translateY(-1px)}
+  .menuitem:hover{border-color:#574d80}
+}
+button:focus,button:focus-visible,input:focus,select:focus,textarea:focus{outline:none}
+.field input:focus,.field select:focus,.field textarea:focus,.searchbar input:focus{border-color:var(--gold)}
+</style>
+</head>
+<body>
+<header>
+  <div class="headin">
+    <div class="brand">
+      <span class="mic">🎤</span>
+      <h1>マイ・カラオケ曲帳</h1>
+      <span class="sub" id="totalSub"></span>
+      <button class="menubtn" id="menuBtn" aria-label="メニュー">☰</button>
+    </div>
+    <div class="searchbar">
+      <span class="ico">🔍</span>
+      <input id="search" type="text" inputmode="search" placeholder="曲名・歌手・年・メモで検索">
+      <button class="clr" id="clrBtn" aria-label="クリア">×</button>
+    </div>
+    <div class="tabs" id="tabs"></div>
+    <div class="filters" id="filters">
+      <button class="chip" data-voice="男性">男性</button>
+      <button class="chip" data-voice="女性">女性</button>
+      <button class="chip" data-voice="グループ">グループ</button>
+      <button class="chip" data-duet="1">デュエット</button>
+      <span class="spacer"></span>
+      <select class="sortsel" id="sortSel">
+        <option value="added">追加順</option>
+        <option value="title">曲名順</option>
+        <option value="artist">歌手順</option>
+        <option value="year">年代順</option>
+      </select>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="count" id="count"></div>
+  <div class="list" id="list"></div>
+</div>
+
+<button class="fab" id="addFab"><span class="p">＋</span>新規登録</button>
+
+<!-- 編集/登録シート -->
+<div class="overlay" id="editOverlay">
+  <div class="sheet">
+    <div class="grip"></div>
+    <h2 id="editTitle">新規登録</h2>
+    <div class="field">
+      <label>分類</label>
+      <div class="catrow" id="catRow">
+        <button class="catpick c-sing" data-cat="歌える">歌える曲</button>
+        <button class="catpick c-try" data-cat="歌ってみたい">歌ってみたい</button>
+        <button class="catpick c-req" data-cat="リクエスト">リクエスト</button>
+        <button class="catpick c-fr" data-cat="友人">友人が好きな曲</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>曲名 <span style="color:var(--gold)">*</span></label>
+      <input type="text" id="f_title" placeholder="例：雪の華">
+    </div>
+    <div class="field">
+      <label>歌手名</label>
+      <input type="text" id="f_artist" placeholder="例：中島美嘉">
+    </div>
+    <div class="field">
+      <label>キー調整</label>
+      <div class="keyrow">
+        <button class="kbtn" id="keyMinus">−</button>
+        <input type="text" id="f_key" placeholder="±0 / +2 / -3" style="text-align:center">
+        <button class="kbtn" id="keyPlus">＋</button>
+      </div>
+      <div class="hint">原曲キーは「±0」。上げる=＋、下げる=−（リストの▼は−）</div>
+    </div>
+    <div class="field">
+      <label>男性・女性・グループ</label>
+      <div class="voicerow" id="voiceRow">
+        <button class="vpick" data-voice="男性">男性</button>
+        <button class="vpick" data-voice="女性">女性</button>
+        <button class="vpick" data-voice="グループ">グループ</button>
+        <button class="vpick" data-voice="">未設定</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>デュエット</label>
+      <div class="duetrow" id="duetRow">
+        <button class="vpick" data-duet="0">ソロ</button>
+        <button class="vpick" data-duet="1">デュエット曲</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>作成年度（発売年）</label>
+      <input type="number" id="f_year" inputmode="numeric" placeholder="例：2003">
+    </div>
+    <div class="field">
+      <label>メモ</label>
+      <textarea id="f_memo" placeholder="アニソン・デュエット相手・練習中・お気に入り など"></textarea>
+    </div>
+    <div class="actions">
+      <button class="btn cancel" id="editCancel">キャンセル</button>
+      <button class="btn save" id="editSave">保存する</button>
+    </div>
+    <div class="actions" id="delRow" style="display:none">
+      <button class="btn del full" id="editDelete">この曲を削除</button>
+    </div>
+  </div>
+</div>
+
+<!-- メニューシート -->
+<div class="overlay" id="menuOverlay">
+  <div class="sheet">
+    <div class="grip"></div>
+    <h2>メニュー</h2>
+    <button class="menuitem" id="mExport"><span class="mi">⬇️</span><span>バックアップを保存<div class="md">全曲をファイル(JSON)に書き出し</div></span></button>
+    <button class="menuitem" id="mImport"><span class="mi">⬆️</span><span>バックアップを読み込み<div class="md">別の端末のデータを取り込む（上書き）</div></span></button>
+    <button class="menuitem" id="mText"><span class="mi">📄</span><span>一覧テキストをコピー<div class="md">表示中の曲をまとめてコピー</div></span></button>
+    <button class="menuitem danger" id="mReset"><span class="mi">↺</span><span>初期データに戻す<div class="md">最初の325曲のリストに戻します</div></span></button>
+    <button class="menuitem" id="menuClose" style="justify-content:center;margin-top:6px"><span>閉じる</span></button>
+    <input type="file" id="fileInput" accept="application/json,.json" style="display:none">
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SEED = [{"cat": "歌える", "title": "時の流れに身を任せ", "artist": "テレサ・テン", "key": "+2", "voice": "女性", "duet": true, "year": 1986, "memo": "デュエットでも", "id": 1}, {"cat": "歌える", "title": "あの娘はステディーガール", "artist": "クールス", "key": "-1", "voice": "グループ", "duet": false, "year": null, "memo": "", "id": 2}, {"cat": "歌える", "title": "シンデレラ", "artist": "クールス", "key": "-1", "voice": "グループ", "duet": false, "year": null, "memo": "", "id": 3}, {"cat": "歌える", "title": "紫のハイウェイ", "artist": "クールス", "key": "-1", "voice": "グループ", "duet": false, "year": null, "memo": "", "id": 4}, {"cat": "歌える", "title": "GO!!!", "artist": "FLOW", "key": "-1", "voice": "グループ", "duet": false, "year": 2004, "memo": "アニソン（NARUTO）", "id": 5}, {"cat": "歌える", "title": "butter-fly", "artist": "和田光司", "key": "-2", "voice": "男性", "duet": false, "year": 1999, "memo": "アニソン（デジモン）／30代", "id": 6}, {"cat": "歌える", "title": "ウィーアー!", "artist": "きただにひろし", "key": "-2", "voice": "男性", "duet": false, "year": 1999, "memo": "アニソン（ONE PIECE）", "id": 7}, {"cat": "歌える", "title": "心絵", "artist": "ロードオブメジャー", "key": "-4", "voice": "グループ", "duet": false, "year": 2004, "memo": "アニソン（MAJOR）", "id": 8}, {"cat": "歌える", "title": "世界が終わるまでは…", "artist": "WANDS", "key": "-3", "voice": "グループ", "duet": false, "year": 1994, "memo": "アニソン（SLAM DUNK）", "id": 9}, {"cat": "歌える", "title": "ええねん", "artist": "ウルフルズ", "key": "-2", "voice": "グループ", "duet": false, "year": 2003, "memo": "⭐︎", "id": 10}, {"cat": "歌える", "title": "笑えれば", "artist": "ウルフルズ", "key": "-2", "voice": "グループ", "duet": false, "year": 2003, "memo": "", "id": 11}, {"cat": "歌える", "title": "終わらない歌", "artist": "THE BLUE HEARTS", "key": "-2", "voice": "グループ", "duet": false, "year": 1987, "memo": "", "id": 12}, {"cat": "歌える", "title": "雪の華", "artist": "中島美嘉", "key": "+2〜+1", "voice": "女性", "duet": false, "year": 2003, "memo": "✨", "id": 13}, {"cat": "歌える", "title": "TSUNAMI", "artist": "サザンオールスターズ", "key": "-3", "voice": "グループ", "duet": false, "year": 2000, "memo": "✨", "id": 14}, {"cat": "歌える", "title": "涙の海で抱かれたい", "artist": "サザンオールスターズ", "key": "-2", "voice": "グループ", "duet": false, "year": null, "memo": "", "id": 15}, {"cat": "歌える", "title": "粉雪", "artist": "レミオロメン", "key": "-3", "voice": "グループ", "duet": false, "year": 2005, "memo": "", "id": 16}, {"cat": "歌える", "title": "オレンジ", "artist": "SMAP", "key": "", "voice": "グループ", "duet": false, "year": 2004, "memo": "", "id": 17}, {"cat": "歌える", "title": "CROSS ROAD", "artist": "Mr.Children", "key": "", "voice": "グループ", "duet": false, "year": 1993, "memo": "", "id": 18}, {"cat": "歌える", "title": "逢いたくてしかたない", "artist": "郷ひろみ", "key": "", "voice": "男性", "duet": false, "year": null, "memo": "", "id": 19}, {"cat": "歌える", "title": "HAPPY ENDING", "artist": "back number", "key": "", "voice": "グループ", "duet": false, "year": 2016, "memo": "Happy end", "id": 20}, {"cat": "歌える", "title": "ひとりで生きていたならば", "artist": "SUPER BEAVER", "key": "", "voice": "グループ", "duet": false, "year": null, "memo": "", "id": 21}, {"cat": "歌える", "title": "また逢う日まで", "artist": "尾崎紀世彦", "key": "±0", "voice": "男性", "duet": false, "year": 1971, "memo": "", "id": 22}, {"cat": "歌える", "title": "時代", "artist": "中島みゆき", "key": "+1〜+2", "voice": "女性", "duet": false, "year": 1975, "memo": "✨", "id": 23}, {"cat": "歌える", "title": "地上の星", "artist": "中島みゆき", "key": "", "voice": "女性", "duet": false, "year": 2000, "memo": "", "id": 24}, {"cat": "歌える", "title": "僕のこと", "artist": "Mrs. GREEN APPLE", "key": "-2", "voice": "グループ", "duet": false, "year": 2019, "memo": "", "id": 25}, {"cat": "歌える", "title": "君は天然色", "artist": "大滝詠一", "key": "-1", "voice": "男性", "duet": false, "year": 1981, "memo": "#夏のカラオケ／かくしごとversionは1番のみ -1", "id": 26}, {"cat": "歌える", "title": "Ride on Time", "artist": "山下達郎", "key": "+1", "voice": "男性", "duet": false, "year": 1980, "memo": "May J. カバー +1", "id": 27}, {"cat": "歌える", "title": "涙そうそう", "artist": "夏川りみ", "key": "+1", "voice": "女性", "duet": false, "year": 2001, "memo": "⭐︎ #夏のカラオケ", "id": 28}, {"cat": "歌える", "title": "涙そうそう", "artist": "BEGIN", "key": "-2", "voice": "グループ", "duet": false, "year": 1998, "memo": "#夏のカラオケ", "id": 29}, {"cat": "歌える", "title": "水平線", "artist": "back number", "key": "-2", "voice": "グループ", "duet": false, "year": 2020, "memo": "#夏のカラオケ", "id": 30}, {"cat": "歌える", "title": "I LOVE YOU", "artist": "尾崎豊", "key": "-2", "voice": "男性", "duet": false, "year": 1983, "memo": "#夏のカラオケ", "id": 31}, {"cat": "歌える", "title": "少年時代", "artist": "井上陽水", "key": "-1", "voice": "男性", "duet": false, "year": 1990, "memo": "⭐︎", "id": 32}, {"cat": "歌える", "title": "心得", "artist": "Uru", "key": "+2", "voice": "女性", "duet": false, "year": 2020, "memo": "⭐︎／「教場0」主題歌", "id": 33}, {"cat": "歌える", "title": "Story", "artist": "KG", "key": "-2", "voice": "男性", "duet": false, "year": 2008, "memo": "⭐︎／AI版は +", "id": 34}, {"cat": "歌える", "title": "奏（かなで）", "artist": "スキマスイッチ", "key": "-3", "voice": "グループ", "duet": false, "year": 2004, "memo": "⭐︎", "id": 35}, {"cat": "歌える", "title": "チェリー", "artist": "スピッツ", "key": "-2", "voice": "グループ", "duet": false, "year": 1996, "memo": "⭐︎ ※福山雅治カバーでも", "id": 36}, {"cat": "歌える", "title": "メロディー", "artist": "玉置浩二", "key": "-1", "voice": "男性", "duet": false, "year": 1996, "memo": "⭐︎", "id": 37}, {"cat": "歌える", "title": "明日への手紙", "artist": "手嶌葵", "key": "+2", "voice": "女性", "duet": false, "year": 2016, "memo": "⭐︎", "id": 38}, {"cat": "歌える", "title": "彩り", "artist": "Mr.Children", "key": "-4", "voice": "グループ", "duet": false, "year": 2007, "memo": "⭐︎", "id": 39}, {"cat": "歌える", "title": "最後の雨", "artist": "中西保志", "key": "-3", "voice": "男性", "duet": false, "year": 1992, "memo": "⭐︎", "id": 40}, {"cat": "歌える", "title": "Missing", "artist": "久保田利伸", "key": "", "voice": "男性", "duet": false, "year": 1986, "memo": "", "id": 41}, {"cat": "歌える", "title": "このまま君だけを奪い去りたい", "artist": "織田哲郎", "key": "-2", "voice": "男性", "duet": false, "year": 1992, "memo": "⭐︎ ※DEEN版は -3", "id": 42}, {"cat": "歌える", "title": "何も言えなくて…夏", "artist": "J-WALK", "key": "-2", "voice": "グループ", "duet": false, "year": 1991, "memo": "", "id": 43}, {"cat": "歌える", "title": "さよなら", "artist": "オフコース", "key": "-1", "voice": "グループ", "duet": false, "year": 1979, "memo": "-1〜±0", "id": 44}, {"cat": "歌える", "title": "ささやかなこの人生", "artist": "風", "key": "-1", "voice": "グループ", "duet": false, "year": 1976, "memo": "⭐︎", "id": 45}, {"cat": "歌える", "title": "愛は勝つ", "artist": "KAN", "key": "±0", "voice": "男性", "duet": false, "year": 1990, "memo": "", "id": 46}, {"cat": "歌える", "title": "Get Along Together", "artist": "山根康広", "key": "-1", "voice": "男性", "duet": false, "year": 1993, "memo": "-1〜-2", "id": 47}, {"cat": "歌える", "title": "見上げてごらん夜の星を", "artist": "坂本九", "key": "-2", "voice": "男性", "duet": false, "year": 1963, "memo": "⭐︎", "id": 48}, {"cat": "歌える", "title": "上を向いて歩こう", "artist": "坂本九", "key": "", "voice": "男性", "duet": false, "year": 1961, "memo": "⭐︎", "id": 49}, {"cat": "歌える", "title": "帰れない二人", "artist": "井上陽水", "key": "-2", "voice": "男性", "duet": false, "year": 1973, "memo": "⭐︎ 井上陽水・忌野清志郎", "id": 50}, {"cat": "歌える", "title": "悲しみにさよなら", "artist": "安全地帯", "key": "-2", "voice": "グループ", "duet": false, "year": 1985, "memo": "スローverも", "id": 51}, {"cat": "歌える", "title": "オワリはじまり", "artist": "かりゆし58", "key": "-3", "voice": "グループ", "duet": false, "year": null, "memo": "ドラマ曲", "id": 52}, {"cat": "歌える", "title": "サボテンの花", "artist": "チューリップ", "key": "-2", "voice": "グループ", "duet": false, "year": 1975, "memo": "2月", "id": 53}, {"cat": "歌える", "title": "太陽がくれた季節", "artist": "青い三角定規", "key": "+1", "voice": "グループ", "duet": false, "year": 1972, "memo": "", "id": 54}, {"cat": "歌える", "title": "真夏の果実", "artist": "サザンオールスターズ", "key": "-2", "voice": "グループ", "duet": false, "year": 1990, "memo": "", "id": 55}, {"cat": "歌える", "title": "海の声", "artist": "桐谷健太", "key": "-1", "voice": "男性", "duet": false, "year": 2015, "memo": "浦島太郎", "id": 56}, {"cat": "歌える", "title": "青葉城恋唄", "artist": "さとう宗幸", "key": "±0", "voice": "男性", "duet": false, "year": 1978, "memo": "広瀬川", "id": 57}, {"cat": "歌える", "title": "ロビンソン", "artist": "スピッツ", "key": "-2", "voice": "グループ", "duet": false, "year": 1995, "memo": "", "id": 58}, {"cat": "歌える", "title": "風になりたい", "artist": "THE BOOM", "key": "", "voice": "グループ", "duet": false, "year": 1995, "memo": "", "id": 59}, {"cat": "歌える", "title": "島唄", "artist": "THE BOOM", "key": "", "voice": "グループ", "duet": false, "year": 1992, "memo": "", "id": 60}, {"cat": "歌える", "title": "今ありて", "artist": "谷村新司", "key": "", "voice": "男性", "duet": false, "year": 1993, "memo": "春の甲子園", "id": 61}, {"cat": "歌える", "title": "栄冠は君に輝く", "artist": "", "key": "", "voice": "", "duet": false, "year": 1948, "memo": "夏の甲子園 高校球児への歌", "id": 62}, {"cat": "歌える", "title": "乾杯", "artist": "長渕剛", "key": "-1", "voice": "男性", "duet": false, "year": 1980, "memo": "", "id": 63}, {"cat": "歌える", "title": "世界に一つだけの花", "artist": "SMAP", "key": "-1", "voice": "グループ", "duet": false, "year": 2003, "memo": "⭐︎", "id": 64}, {"cat": "歌える", "title": "夜空ノムコウ", "artist": "SMAP", "key": "-2", "voice": "グループ", "duet": false, "year": 1998, "memo": "⭐︎ -2〜-1", "id": 65}, {"cat": "歌える", "title": "SHAKE", "artist": "SMAP", "key": "-1", "voice": "グループ", "duet": false, "year": 1996, "memo": "⭐︎", "id": 66}, {"cat": "歌える", "title": "最初から今まで", "artist": "Ryu", "key": "", "voice": "男性", "duet": false, "year": 2002, "memo": "冬のソナタ", "id": 67}, {"cat": "歌える", "title": "My Memory", "artist": "SEPTEMBER", "key": "+2", "voice": "女性", "duet": false, "year": 2002, "memo": "⭐︎ 冬ソナ ※やしきたかじん版-1／Ryu版-3", "id": 68}, {"cat": "歌える", "title": "ハナミズキ", "artist": "一青窈", "key": "+3", "voice": "女性", "duet": false, "year": 2004, "memo": "", "id": 69}, {"cat": "歌える", "title": "Squall", "artist": "福山雅治", "key": "-2", "voice": "男性", "duet": false, "year": 1999, "memo": "", "id": 70}, {"cat": "歌える", "title": "365日", "artist": "Mr.Children", "key": "-4", "voice": "グループ", "duet": false, "year": 2008, "memo": "", "id": 71}, {"cat": "歌える", "title": "妹よ", "artist": "かぐや姫", "key": "-1", "voice": "グループ", "duet": false, "year": 1975, "memo": "", "id": 72}, {"cat": "歌える", "title": "風", "artist": "はしだのりひことシューベルツ", "key": "±0", "voice": "グループ", "duet": false, "year": 1969, "memo": "", "id": 73}, {"cat": "歌える", "title": "心の旅", "artist": "チューリップ", "key": "±0", "voice": "グループ", "duet": false, "year": 1973, "memo": "", "id": 74}, {"cat": "歌える", "title": "言えないよ", "artist": "郷ひろみ", "key": "-2", "voice": "男性", "duet": false, "year": 1994, "memo": "", "id": 75}, {"cat": "歌える", "title": "ヘッドライト・テールライト", "artist": "中島みゆき", "key": "+4", "voice": "女性", "duet": false, "year": 1998, "memo": "⭐︎", "id": 76}, {"cat": "歌える", "title": "さくら（独唱）", "artist": "森山直太朗", "key": "+5", "voice": "男性", "duet": false, "year": 2003, "memo": "+5／-4", "id": 77}, {"cat": "歌える", "title": "愛しい人へ", "artist": "松崎しげる", "key": "-2", "voice": "男性", "duet": false, "year": null, "memo": "⭐︎『私の歌』-2〜-1", "id": 78}, {"cat": "歌える", "title": "いい日旅立ち", "artist": "山口百恵", "key": "+3", "voice": "女性", "duet": false, "year": 1978, "memo": "", "id": 79}, {"cat": "歌える", "title": "SWEET MEMORIES", "artist": "松田聖子", "key": "+2", "voice": "女性", "duet": false, "year": 1983, "memo": "", "id": 80}, {"cat": "歌える", "title": "楓", "artist": "スピッツ", "key": "-4", "voice": "グループ", "duet": false, "year": 1998, "memo": "⭐︎ -4（-3）", "id": 81}, {"cat": "歌える", "title": "空も飛べるはず", "artist": "スピッツ", "key": "-3", "voice": "グループ", "duet": false, "year": 1994, "memo": "", "id": 82}, {"cat": "歌える", "title": "優しいあの子", "artist": "スピッツ", "key": "-3", "voice": "グループ", "duet": false, "year": 2019, "memo": "", "id": 83}, {"cat": "歌える", "title": "いっそセレナーデ", "artist": "井上陽水", "key": "-1", "voice": "男性", "duet": false, "year": 1984, "memo": "", "id": 84}, {"cat": "歌える", "title": "リバーサイドホテル", "artist": "井上陽水", "key": "-1", "voice": "男性", "duet": false, "year": 1982, "memo": "", "id": 85}, {"cat": "歌える", "title": "夢の中へ", "artist": "井上陽水", "key": "-1", "voice": "男性", "duet": false, "year": 1973, "memo": "", "id": 86}, {"cat": "歌える", "title": "ワインレッドの心", "artist": "安全地帯", "key": "-1", "voice": "グループ", "duet": false, "year": 1983, "memo": "", "id": 87}, {"cat": "歌える", "title": "心もよう", "artist": "井上陽水", "key": "-1", "voice": "男性", "duet": false, "year": 1973, "memo": "", "id": 88}, {"cat": "歌える", "title": "恋の予感", "artist": "安全地帯", "key": "-1", "voice": "グループ", "duet": false, "year": 1984, "memo": "玉置浩二", "id": 89}, {"cat": "歌える", "title": "傘がない", "artist": "井上陽水", "key": "", "voice": "男性", "duet": false, "year": 1972, "memo": "", "id": 90}, {"cat": "歌える", "title": "メロディー（安全地帯）", "artist": "安全地帯", "key": "-1", "voice": "グループ", "duet": false, "year": 1996, "memo": "-1〜±0", "id": 91}, {"cat": "歌える", "title": "青い瞳のエリス", "artist": "安全地帯", "key": "-1", "voice": "グループ", "duet": false, "year": 1985, "memo": "", "id": 92}, {"cat": "歌える", "title": "熱視線", "artist": "安全地帯", "key": "-1", "voice": "グループ", "duet": false, "year": 1985, "memo": "", "id": 93}, {"cat": "歌える", "title": "I love youからはじめよう", "artist": "安全地帯", "key": "", "voice": "グループ", "duet": false, "year": 1986, "memo": "", "id": 94}, {"cat": "歌える", "title": "マスカレード", "artist": "玉置浩二", "key": "", "voice": "男性", "duet": false, "year": null, "memo": "", "id": 95}, {"cat": "歌える", "title": "しあわせのランプ", "artist": "玉置浩二", "key": "", "voice": "男性", "duet": false, "year": null, "memo": "", "id": 96}, {"cat": "歌える", "title": "糸", "artist": "中島みゆき", "key": "", "voice": "女性", "duet": false, "year": 1992, "memo": "福山雅治カバーでも", "id": 97}, {"cat": "歌える", "title": "桜坂", "artist": "福山雅治", "key": "", "voice": "男性", "duet": false, "year": 2000, "memo": "", "id": 98}, {"cat": "歌える", "title": "Best Friend", "artist": "Kiroro", "key": "+3", "voice": "女性", "duet": false, "year": 2001, "memo": "+1〜+2／ちゅらさん", "id": 99}, {"cat": "歌える", "title": "長い間", "artist": "Kiroro", "key": "+4", "voice": "女性", "duet": false, "year": 1997, "memo": "", "id": 100}, {"cat": "歌える", "title": "あとひとつ", "artist": "FUNKY MONKEY BABYS", "key": "-4", "voice": "グループ", "duet": false, "year": 2010, "memo": "", "id": 101}, {"cat": "歌える", "title": "それでも信じてる", "artist": "FUNKY MONKEY BABYS", "key": "-4", "voice": "グループ", "duet": false, "year": null, "memo": "", "id": 102}, {"cat": "歌える", "title": "フリージア", "artist": "Uru", "key": "+1", "voice": "女性", "duet": false, "year": 2018, "memo": "", "id": 103}, {"cat": "歌える", "title": "あなたがいることで", "artist": "Uru", "key": "+1", "voice": "女性", "duet": false, "year": 2020, "memo": "", "id": 104}, {"cat": "歌える", "title": "瞳をとじて", "artist": "平井堅", "key": "-4", "voice": "男性", "duet": false, "year": 2004, "memo": "", "id": 105}, {"cat": "歌える", "title": "LIFE is…〜another story〜", "artist": "平井堅", "key": "-3", "voice": "男性", "duet": false, "year": 2003, "memo": "", "id": 106}, {"cat": "歌える", "title": "輝きながら…", "artist": "徳永英明", "key": "-3", "voice": "男性", "duet": false, "year": 1987, "memo": "", "id": 107}, {"cat": "歌える", "title": "あの鐘を鳴らすのはあなた", "artist": "和田アキ子", "key": "+3", "voice": "女性", "duet": false, "year": 1972, "memo": "※徳永英明版 -3", "id": 108}, {"cat": "歌える", "title": "なごり雪", "artist": "イルカ", "key": "+3", "voice": "女性", "duet": false, "year": 1975, "memo": "※かぐや姫版 -2", "id": 109}, {"cat": "歌える", "title": "ラヴ・イズ・オーヴァー", "artist": "欧陽菲菲", "key": "-4", "voice": "女性", "duet": false, "year": 1979, "memo": "", "id": 110}, {"cat": "歌える", "title": "道化師のソネット", "artist": "さだまさし", "key": "-3", "voice": "男性", "duet": false, "year": 1980, "memo": "※歌心りえの感じ／鈴木雅之版-2", "id": 111}, {"cat": "歌える", "title": "世界中の誰よりきっと", "artist": "織田哲郎", "key": "±0", "voice": "男性", "duet": false, "year": 1992, "memo": "-1±0 ○／中山美穂&WANDS +4", "id": 112}, {"cat": "歌える", "title": "いつまでも変わらぬ愛を", "artist": "織田哲郎", "key": "", "voice": "男性", "duet": false, "year": null, "memo": "", "id": 113}, {"cat": "歌える", "title": "もっと強く抱きしめたら", "artist": "WANDS", "key": "-3", "voice": "グループ", "duet": false, "year": 1992, "memo": "", "id": 114}, {"cat": "歌える", "title": "Hope & Dream", "artist": "MISIA", "key": "+2", "voice": "女性", "duet": false, "year": null, "memo": "+2〜+3", "id": 115}, {"cat": "歌える", "title": "Everything", "artist": "MISIA", "key": "+4", "voice": "女性", "duet": false, "year": 2000, "memo": "※KGカバー -1", "id": 116}, {"cat": "歌える", "title": "アイノカタチ", "artist": "MISIA", "key": "+2", "voice": "女性", "duet": false, "year": 2018, "memo": "", "id": 117}, {"cat": "歌える", "title": "木蓮の涙", "artist": "スターダスト☆レビュー", "key": "+4", "voice": "グループ", "duet": false, "year": 1992, "memo": "アコースティック +4", "id": 118}, {"cat": "歌える", "title": "今夜だけきっと", "artist": "スターダスト☆レビュー", "key": "±0", "voice": "グループ", "duet": false, "year": 1986, "memo": "", "id": 119}, {"cat": "歌える", "title": "夢伝説", "artist": "スターダスト☆レビュー", "key": "-4", "voice": "グループ", "duet": false, "year": 1984, "memo": "", "id": 120}, {"cat": "歌える", "title": "トワイライト・アヴェニュー", "artist": "スターダスト☆レビュー", "key": "-1", "voice": "グループ", "duet": false, "year": 1983, "memo": "+5/-4 つんく版-1", "id": 121}, {"cat": "歌える", "title": "常套句", "artist": "Mr.Children", "key": "-4", "voice": "グループ", "duet": false, "year": 2013, "memo": "", "id": 122}, {"cat": "歌える", "title": "名もなき詩", "artist": "Mr.Children", "key": "", "voice": "グループ", "duet": false, "year": 1996, "memo": "", "id": 123}, {"cat": "歌える", "title": "Tomorrow never knows", "artist": "Mr.Children", "key": "-2", "voice": "グループ", "duet": false, "year": 1994, "memo": "", "id": 124}, {"cat": "歌える", "title": "innocent world", "artist": "Mr.Children", "key": "", "voice": "グループ", "duet": false, "year": 1994, "memo": "", "id": 125}, {"cat": "歌える", "title": "Sign", "artist": "Mr.Children", "key": "-3", "voice": "グループ", "duet": false, "year": 2004, "memo": "", "id": 126}, {"cat": "歌える", "title": "しるし", "artist": "Mr.Children", "key": "", "voice": "グループ", "duet": false, "year": 2006, "memo": "", "id": 127}, {"cat": "歌える", "title": "涙のキッス", "artist": "サザンオールスターズ", "key": "-2", "voice": "グループ", "duet": false, "year": 1992, "memo": "", "id": 128}, {"cat": "歌える", "title": "勝手にシンドバッド", "artist": "サザンオールスターズ", "key": "", "voice": "グループ", "duet": false, "year": 1978, "memo": "", "id": 129}, {"cat": "歌える", "title": "栞のテーマ", "artist": "サザンオールスターズ", "key": "-4", "voice": "グループ", "duet": false, "year": 1981, "memo": "", "id": 130}, {"cat": "歌える", "title": "あの素晴しい愛をもう一度", "artist": "加藤和彦・北山修", "key": "", "voice": "男性", "duet": false, "year": 1971, "memo": "🍻 ⭐︎桑田", "id": 131}, {"cat": "歌える", "title": "青春の影", "artist": "チューリップ", "key": "-1", "voice": "グループ", "duet": false, "year": 1974, "memo": "", "id": 132}, {"cat": "歌える", "title": "銀の指輪", "artist": "チューリップ", "key": "", "voice": "グループ", "duet": false, "year": 1974, "memo": "", "id": 133}, {"cat": "歌える", "title": "今はもう誰も", "artist": "アリス", "key": "", "voice": "グループ", "duet": false, "year": 1975, "memo": "", "id": 134}, {"cat": "歌える", "title": "SAY YES", "artist": "CHAGE and ASKA", "key": "-1", "voice": "グループ", "duet": false, "year": 1991, "memo": "with田口さん", "id": 135}, {"cat": "歌える", "title": "エピローグ", "artist": "CHAGE and ASKA", "key": "-1", "voice": "グループ", "duet": false, "year": null, "memo": "", "id": 136}, {"cat": "歌える", "title": "YAH YAH YAH", "artist": "CHAGE and ASKA", "key": "", "voice": "グループ", "duet": false, "year": 1993, "memo": "", "id": 137}, {"cat": "歌える", "title": "桜", "artist": "コブクロ", "key": "-3", "voice": "グループ", "duet": false, "year": 2005, "memo": "-4〜-2／with田口さん", "id": 138}, {"cat": "歌える", "title": "君という名の翼", "artist": "コブクロ", "key": "-3", "voice": "グループ", "duet": false, "year": 2011, "memo": "", "id": 139}, {"cat": "歌える", "title": "蕾（つぼみ）", "artist": "コブクロ", "key": "-3", "voice": "グループ", "duet": false, "year": 2007, "memo": "-3〜-4", "id": 140}, {"cat": "歌える", "title": "月光", "artist": "コブクロ", "key": "", "voice": "グループ", "duet": false, "year": 2008, "memo": "", "id": 141}, {"cat": "歌える", "title": "宿無し", "artist": "世良公則&ツイスト", "key": "-1", "voice": "グループ", "duet": false, "year": 1977, "memo": "", "id": 142}, {"cat": "歌える", "title": "性（さが）", "artist": "世良公則&ツイスト", "key": "-1", "voice": "グループ", "duet": false, "year": 1978, "memo": "", "id": 143}, {"cat": "歌える", "title": "銃爪（ひきがね）", "artist": "世良公則&ツイスト", "key": "-1", "voice": "グループ", "duet": false, "year": 1978, "memo": "", "id": 144}, {"cat": "歌える", "title": "あんたのバラード", "artist": "世良公則&ツイスト", "key": "", "voice": "グループ", "duet": false, "year": 1977, "memo": "", "id": 145}, {"cat": "歌える", "title": "燃えろいい女", "artist": "世良公則&ツイスト", "key": "", "voice": "グループ", "duet": false, "year": 1979, "memo": "", "id": 146}, {"cat": "歌える", "title": "ウイスキーコーク", "artist": "矢沢永吉", "key": "-2", "voice": "男性", "duet": false, "year": null, "memo": "", "id": 147}, {"cat": "歌える", "title": "Yes My Love", "artist": "矢沢永吉", "key": "-2", "voice": "男性", "duet": false, "year": 1982, "memo": "", "id": 148}, {"cat": "歌える", "title": "時間よ止まれ", "artist": "矢沢永吉", "key": "-2", "voice": "男性", "duet": false, "year": 1978, "memo": "", "id": 149}, {"cat": "歌える", "title": "トラベリン・バス", "artist": "矢沢永吉", "key": "", "voice": "男性", "duet": false, "year": 1977, "memo": "", "id": 150}, {"cat": "歌える", "title": "I love you, OK", "artist": "矢沢永吉", "key": "-1", "voice": "男性", "duet": false, "year": 1975, "memo": "", "id": 151}, {"cat": "歌える", "title": "親友", "artist": "矢沢永吉", "key": "-3", "voice": "男性", "duet": false, "year": null, "memo": "", "id": 152}, {"cat": "歌える", "title": "雨のハイウェイ", "artist": "矢沢永吉", "key": "-2", "voice": "男性", "duet": false, "year": null, "memo": "", "id": 153}, {"cat": "歌える", "title": "ゴールドラッシュ", "artist": "矢沢永吉", "key": "-2", "voice": "男性", "duet": false, "year": null, "memo": "", "id": 154}, {"cat": "歌える", "title": "川の流れを抱いて眠りたい", "artist": "時任三郎", "key": "", "voice": "男性", "duet": false, "year": null, "memo": "", "id": 155}, {"cat": "歌える", "title": "勇気のしるし", "artist": "時任三郎", "key": "-4", "voice": "男性", "duet": false, "year": 1988, "memo": "リゲインのテーマ／ピアノ", "id": 156}, {"cat": "歌える", "title": "ウェディング・リバー", "artist": "時任三郎", "key": "", "voice": "男性", "duet": false, "year": null, "memo": "", "id": 157}, {"cat": "歌える", "title": "サンキュ.", "artist": "TUBE", "key": "-5", "voice": "グループ", "duet": false, "year": 1995, "memo": "90年代", "id": 158}, {"cat": "歌える", "title": "SUMMER DREAM", "artist": "TUBE", "key": "-1", "voice": "グループ", "duet": false, "year": 1989, "memo": "", "id": 159}, {"cat": "歌える", "title": "シーズン・イン・ザ・サン", "artist": "TUBE", "key": "-2", "voice": "グループ", "duet": false, "year": 1986, "memo": "", "id": 160}, {"cat": "歌える", "title": "アンジェリーナ", "artist": "佐野元春", "key": "-2", "voice": "男性", "duet": false, "year": 1980, "memo": "", "id": 161}, {"cat": "歌える", "title": "SOMEDAY", "artist": "佐野元春", "key": "-1", "voice": "男性", "duet": false, "year": 1981, "memo": "", "id": 162}, {"cat": "歌える", "title": "ガッツだぜ!!", "artist": "ウルフルズ", "key": "", "voice": "グループ", "duet": false, "year": 1995, "memo": "", "id": 163}, {"cat": "歌える", "title": "哀愁のカサブランカ", "artist": "郷ひろみ", "key": "-2", "voice": "男性", "duet": false, "year": 1982, "memo": "", "id": 164}, {"cat": "歌える", "title": "Golden Fish", "artist": "郷ひろみ", "key": "", "voice": "男性", "duet": false, "year": null, "memo": "", "id": 165}, {"cat": "歌える", "title": "もうひとつの土曜日", "artist": "浜田省吾", "key": "", "voice": "男性", "duet": false, "year": 1981, "memo": "", "id": 166}, {"cat": "歌える", "title": "MONEY", "artist": "浜田省吾", "key": "", "voice": "男性", "duet": false, "year": 1984, "memo": "", "id": 167}, {"cat": "歌える", "title": "夢のつづき", "artist": "浜田省吾", "key": "", "voice": "男性", "duet": false, "year": 1980, "memo": "", "id": 168}, {"cat": "歌える", "title": "時の過ぎゆくままに", "artist": "沢田研二", "key": "-1", "voice": "男性", "duet": false, "year": 1975, "memo": "", "id": 169}, {"cat": "歌える", "title": "怪獣", "artist": "サカナクション", "key": "", "voice": "グループ", "duet": false, "year": 2023, "memo": "", "id": 170}, {"cat": "歌える", "title": "新宝島", "artist": "サカナクション", "key": "", "voice": "グループ", "duet": false, "year": 2015, "memo": "", "id": 171}, {"cat": "歌える", "title": "高嶺の花子さん", "artist": "back number", "key": "", "voice": "グループ", "duet": false, "year": 2013, "memo": "まっすー", "id": 172}, {"cat": "歌える", "title": "栄光の架橋", "artist": "ゆず", "key": "-3", "voice": "グループ", "duet": false, "year": 2004, "memo": "-4〜-2", "id": 173}, {"cat": "歌える", "title": "手紙〜拝啓 十五の君へ〜", "artist": "アンジェラ・アキ", "key": "+3", "voice": "女性", "duet": false, "year": 2008, "memo": "+3〜+4", "id": 174}, {"cat": "歌える", "title": "異邦人", "artist": "久保田早紀", "key": "+1", "voice": "女性", "duet": false, "year": 1979, "memo": "", "id": 175}, {"cat": "歌える", "title": "ガンダーラ", "artist": "ゴダイゴ", "key": "-3", "voice": "グループ", "duet": false, "year": 1978, "memo": "", "id": 176}, {"cat": "歌える", "title": "銀河鉄道999", "artist": "ゴダイゴ", "key": "-2", "voice": "グループ", "duet": false, "year": 1979, "memo": "Express 999 -3", "id": 177}, {"cat": "歌える", "title": "虹", "artist": "菅田将暉", "key": "", "voice": "男性", "duet": false, "year": 2020, "memo": "", "id": 178}, {"cat": "歌える", "title": "遠くで汽笛を聞きながら", "artist": "アリス", "key": "", "voice": "グループ", "duet": false, "year": 1976, "memo": "", "id": 179}, {"cat": "歌える", "title": "22才の別れ", "artist": "風", "key": "-1", "voice": "グループ", "duet": false, "year": 1975, "memo": "", "id": 180}, {"cat": "歌える", "title": "明日があるさ", "artist": "坂本九", "key": "", "voice": "男性", "duet": false, "year": 1963, "memo": "", "id": 181}, {"cat": "歌える", "title": "さらば涙と言おう", "artist": "森田健作", "key": "", "voice": "男性", "duet": false, "year": 1972, "memo": "", "id": 182}, {"cat": "歌える", "title": "友達よ泣くんじゃない", "artist": "森田健作", "key": "", "voice": "男性", "duet": false, "year": 1972, "memo": "", "id": 183}, {"cat": "歌える", "title": "俺たちの旅", "artist": "中村雅俊", "key": "±0", "voice": "男性", "duet": false, "year": 1975, "memo": "", "id": 184}, {"cat": "歌える", "title": "さらば恋人", "artist": "堺正章", "key": "", "voice": "男性", "duet": false, "year": 1971, "memo": "", "id": 185}, {"cat": "歌える", "title": "花嫁", "artist": "はしだのりひことクライマックス", "key": "-4", "voice": "グループ", "duet": false, "year": 1971, "memo": "", "id": 186}, {"cat": "歌える", "title": "酒と泪と男と女", "artist": "河島英五", "key": "", "voice": "男性", "duet": false, "year": 1976, "memo": "", "id": 187}, {"cat": "歌える", "title": "川の流れのように", "artist": "美空ひばり", "key": "-3", "voice": "女性", "duet": false, "year": 1989, "memo": "高橋克典でも", "id": 188}, {"cat": "歌える", "title": "恋", "artist": "松山千春", "key": "-1", "voice": "男性", "duet": false, "year": 1980, "memo": "", "id": 189}, {"cat": "歌える", "title": "二人でお酒を", "artist": "梓みちよ", "key": "", "voice": "女性", "duet": false, "year": 1974, "memo": "", "id": 190}, {"cat": "歌える", "title": "どんなときも。", "artist": "槇原敬之", "key": "-3", "voice": "男性", "duet": false, "year": 1991, "memo": "", "id": 191}, {"cat": "歌える", "title": "それが大事", "artist": "大事MANブラザーズバンド", "key": "", "voice": "グループ", "duet": false, "year": 1991, "memo": "", "id": 192}, {"cat": "歌える", "title": "サヨナラ☆ありがとう", "artist": "", "key": "-4", "voice": "", "duet": false, "year": null, "memo": "", "id": 193}, {"cat": "歌える", "title": "JUST BECAUSE", "artist": "J-WALK", "key": "-2", "voice": "グループ", "duet": false, "year": null, "memo": "", "id": 194}, {"cat": "歌える", "title": "Goodbye Day", "artist": "来生たかお", "key": "", "voice": "男性", "duet": false, "year": 1981, "memo": "", "id": 195}, {"cat": "歌える", "title": "TRUE LOVE", "artist": "藤井フミヤ", "key": "-1", "voice": "男性", "duet": false, "year": 1993, "memo": "", "id": 196}, {"cat": "歌える", "title": "悲しい色やね", "artist": "上田正樹", "key": "-1", "voice": "男性", "duet": false, "year": 1982, "memo": "", "id": 197}, {"cat": "歌える", "title": "大阪で生まれた女", "artist": "BORO", "key": "-1", "voice": "男性", "duet": false, "year": 1979, "memo": "", "id": 198}, {"cat": "歌える", "title": "月のあかり", "artist": "桑名正博", "key": "-1", "voice": "男性", "duet": false, "year": null, "memo": "", "id": 199}, {"cat": "歌える", "title": "夢想花", "artist": "円広志", "key": "-2", "voice": "男性", "duet": false, "year": 1978, "memo": "", "id": 200}, {"cat": "歌える", "title": "ふれあい", "artist": "中村雅俊", "key": "", "voice": "男性", "duet": false, "year": 1974, "memo": "", "id": 201}, {"cat": "歌える", "title": "恋人も濡れる街角", "artist": "中村雅俊", "key": "", "voice": "男性", "duet": false, "year": 1982, "memo": "", "id": 202}, {"cat": "歌える", "title": "離したくはない", "artist": "T-BOLAN", "key": "-2", "voice": "グループ", "duet": false, "year": 1992, "memo": "", "id": 203}, {"cat": "歌える", "title": "シルエット・ロマンス", "artist": "来生たかお", "key": "", "voice": "男性", "duet": false, "year": null, "memo": "大橋純子", "id": 204}, {"cat": "歌える", "title": "ありがとう", "artist": "いきものがかり", "key": "", "voice": "グループ", "duet": false, "year": 2010, "memo": "", "id": 205}, {"cat": "歌える", "title": "リンダリンダ", "artist": "THE BLUE HEARTS", "key": "", "voice": "グループ", "duet": false, "year": 1987, "memo": "", "id": 206}, {"cat": "歌える", "title": "HOWEVER", "artist": "GLAY", "key": "", "voice": "グループ", "duet": false, "year": 1997, "memo": "", "id": 207}, {"cat": "歌える", "title": "そして僕は途方に暮れる", "artist": "大澤誉志幸", "key": "-3", "voice": "男性", "duet": false, "year": 1984, "memo": "", "id": 208}, {"cat": "歌える", "title": "いちご白書をもう一度", "artist": "バンバン", "key": "-1", "voice": "グループ", "duet": false, "year": 1975, "memo": "-1〜-2", "id": 209}, {"cat": "歌える", "title": "私鉄沿線", "artist": "野口五郎", "key": "", "voice": "男性", "duet": false, "year": 1975, "memo": "", "id": 210}, {"cat": "歌える", "title": "涙を拭いて", "artist": "三好鉄生", "key": "-1", "voice": "男性", "duet": false, "year": 1982, "memo": "", "id": 211}, {"cat": "歌える", "title": "ブランデーグラス", "artist": "石原裕次郎", "key": "", "voice": "男性", "duet": false, "year": 1977, "memo": "", "id": 212}, {"cat": "歌える", "title": "わかってください", "artist": "因幡晃", "key": "", "voice": "男性", "duet": false, "year": 1976, "memo": "", "id": 213}, {"cat": "歌える", "title": "雨上がりの夜空に", "artist": "RCサクセション", "key": "-1", "voice": "グループ", "duet": false, "year": 1980, "memo": "", "id": 214}, {"cat": "歌える", "title": "あずさ2号", "artist": "狩人", "key": "", "voice": "グループ", "duet": false, "year": 1977, "memo": "", "id": 215}, {"cat": "歌える", "title": "男達のメロディー", "artist": "SHOGUN", "key": "", "voice": "グループ", "duet": false, "year": 1979, "memo": "", "id": 216}, {"cat": "歌える", "title": "おどるポンポコリン", "artist": "B.B.クィーンズ", "key": "-1", "voice": "グループ", "duet": false, "year": 1990, "memo": "アニソン", "id": 217}, {"cat": "歌える", "title": "よ〜、そこの若いの", "artist": "竹原ピストル", "key": "", "voice": "男性", "duet": false, "year": 2016, "memo": "", "id": 218}, {"cat": "歌える", "title": "スリル", "artist": "布袋寅泰", "key": "", "voice": "男性", "duet": false, "year": 1995, "memo": "Baby Baby…", "id": 219}, {"cat": "歌える", "title": "Progress", "artist": "スガシカオ", "key": "-3", "voice": "男性", "duet": false, "year": 2006, "memo": "プロフェッショナルのテーマ", "id": 220}, {"cat": "歌える", "title": "Grace", "artist": "藤井風", "key": "", "voice": "男性", "duet": false, "year": 2022, "memo": "", "id": 221}, {"cat": "歌える", "title": "ひまわりの約束", "artist": "秦基博", "key": "-5", "voice": "男性", "duet": false, "year": 2014, "memo": "-5/+5?", "id": 222}, {"cat": "歌える", "title": "君こそスター", "artist": "", "key": "", "voice": "", "duet": false, "year": null, "memo": "", "id": 223}, {"cat": "歌える", "title": "島人ぬ宝", "artist": "BEGIN", "key": "-2", "voice": "グループ", "duet": false, "year": 2002, "memo": "", "id": 224}, {"cat": "歌える", "title": "岬めぐり", "artist": "山本コウタロー", "key": "", "voice": "男性", "duet": false, "year": 1974, "memo": "", "id": 225}, {"cat": "歌える", "title": "この空の下", "artist": "コブクロ", "key": "-3", "voice": "グループ", "duet": false, "year": 2005, "memo": "", "id": 226}, {"cat": "歌える", "title": "GET WILD", "artist": "TM NETWORK", "key": "-2", "voice": "グループ", "duet": false, "year": 1987, "memo": "アニソン（シティーハンター）", "id": 227}, {"cat": "歌える", "title": "大ちゃん数え唄", "artist": "吉田よしみ", "key": "", "voice": "女性", "duet": false, "year": 1979, "memo": "アニソン（一休さん系）", "id": 228}, {"cat": "歌える", "title": "宇宙戦艦ヤマト", "artist": "ささきいさお", "key": "+2", "voice": "男性", "duet": false, "year": 1974, "memo": "子門真人", "id": 229}, {"cat": "歌える", "title": "真赤なスカーフ", "artist": "ささきいさお", "key": "", "voice": "男性", "duet": false, "year": 1974, "memo": "宇宙戦艦ヤマト", "id": 230}, {"cat": "歌える", "title": "やさしさに包まれたなら", "artist": "荒井由実", "key": "-4", "voice": "女性", "duet": false, "year": 1974, "memo": "", "id": 231}, {"cat": "歌える", "title": "ルージュの伝言", "artist": "荒井由実", "key": "-4", "voice": "女性", "duet": false, "year": 1975, "memo": "", "id": 232}, {"cat": "歌える", "title": "雨", "artist": "三善英史", "key": "+4", "voice": "男性", "duet": false, "year": 1972, "memo": "", "id": 233}, {"cat": "歌える", "title": "タクシー", "artist": "鈴木聖美", "key": "+2", "voice": "女性", "duet": false, "year": 1987, "memo": "with ラッツ&スター", "id": 234}, {"cat": "歌える", "title": "バス・ストップ", "artist": "平浩二", "key": "-1", "voice": "男性", "duet": false, "year": 1972, "memo": "", "id": 235}, {"cat": "歌える", "title": "熱き心に", "artist": "小林旭", "key": "-1", "voice": "男性", "duet": false, "year": 1985, "memo": "-1/±0", "id": 236}, {"cat": "歌える", "title": "自動車ショー歌", "artist": "小林旭", "key": "", "voice": "男性", "duet": false, "year": 1964, "memo": "", "id": 237}, {"cat": "歌える", "title": "若者たち", "artist": "ザ・ブロードサイド・フォー", "key": "", "voice": "グループ", "duet": false, "year": 1966, "memo": "黒沢年雄", "id": 238}, {"cat": "歌える", "title": "愛はかげろう", "artist": "雅夢", "key": "", "voice": "グループ", "duet": false, "year": 1980, "memo": "", "id": 239}, {"cat": "歌える", "title": "Beautiful Sunday", "artist": "ダニエル・ブーン", "key": "-2", "voice": "男性", "duet": false, "year": 1972, "memo": "英語", "id": 240}, {"cat": "歌える", "title": "上を向いて歩こう（SUKIYAKI）", "artist": "坂本九", "key": "", "voice": "男性", "duet": false, "year": 1961, "memo": "英語", "id": 241}, {"cat": "歌える", "title": "イエスタデイ・ワンス・モア", "artist": "カーペンターズ", "key": "", "voice": "グループ", "duet": false, "year": 1973, "memo": "日本語ver", "id": 242}, {"cat": "歌ってみたい", "title": "subtitle", "artist": "Official髭男dism", "key": "", "voice": "グループ", "duet": false, "year": 2020, "memo": "難しい(@_@;)", "id": 243}, {"cat": "歌ってみたい", "title": "Pretender", "artist": "Official髭男dism", "key": "+4", "voice": "グループ", "duet": false, "year": 2019, "memo": "難しい", "id": 244}, {"cat": "歌ってみたい", "title": "115万キロのフィルム", "artist": "Official髭男dism", "key": "", "voice": "グループ", "duet": false, "year": 2019, "memo": "", "id": 245}, {"cat": "歌ってみたい", "title": "イエスタデイ", "artist": "Official髭男dism", "key": "", "voice": "グループ", "duet": false, "year": 2020, "memo": "難…", "id": 246}, {"cat": "歌ってみたい", "title": "No Doubt", "artist": "Official髭男dism", "key": "", "voice": "グループ", "duet": false, "year": 2018, "memo": "", "id": 247}, {"cat": "歌ってみたい", "title": "異端なスター", "artist": "", "key": "", "voice": "", "duet": false, "year": null, "memo": "難しい…", "id": 248}, {"cat": "歌ってみたい", "title": "どんなときも。", "artist": "槇原敬之", "key": "-2", "voice": "男性", "duet": false, "year": 1991, "memo": "× 練習中", "id": 249}, {"cat": "歌ってみたい", "title": "君がいるだけで", "artist": "米米CLUB", "key": "-1", "voice": "グループ", "duet": false, "year": 1992, "memo": "×", "id": 250}, {"cat": "歌ってみたい", "title": "TOMORROW", "artist": "岡本真夜", "key": "", "voice": "女性", "duet": false, "year": 1995, "memo": "#5 練習中", "id": 251}, {"cat": "歌ってみたい", "title": "涙の数だけ強くなれる", "artist": "岡本真夜", "key": "", "voice": "女性", "duet": false, "year": 1995, "memo": "☆練習中", "id": 252}, {"cat": "歌ってみたい", "title": "どこまでもゆこう", "artist": "山崎まさよし", "key": "-2", "voice": "男性", "duet": false, "year": null, "memo": "× TEMPO+2", "id": 253}, {"cat": "歌ってみたい", "title": "あさのテーマ", "artist": "", "key": "", "voice": "", "duet": false, "year": null, "memo": "聴いてみたい", "id": 254}, {"cat": "歌ってみたい", "title": "ひだまりの詩", "artist": "Le Couple", "key": "", "voice": "グループ", "duet": false, "year": 1997, "memo": "聴いてみたい", "id": 255}, {"cat": "歌ってみたい", "title": "悲しみなんて笑い飛ばせ", "artist": "FUNKY MONKEY BABYS", "key": "", "voice": "グループ", "duet": false, "year": null, "memo": "聴いてみたい", "id": 256}, {"cat": "歌ってみたい", "title": "悲しみの果て", "artist": "エレファントカシマシ", "key": "", "voice": "グループ", "duet": false, "year": 1996, "memo": "姉が好きな歌", "id": 257}, {"cat": "歌ってみたい", "title": "にじいろ", "artist": "絢香", "key": "", "voice": "女性", "duet": false, "year": 2010, "memo": "応援ソング", "id": 258}, {"cat": "歌ってみたい", "title": "幸せ", "artist": "back number", "key": "", "voice": "グループ", "duet": false, "year": 2011, "memo": "ヒロイン", "id": 259}, {"cat": "歌ってみたい", "title": "CAN YOU CELEBRATE?", "artist": "安室奈美恵", "key": "", "voice": "女性", "duet": false, "year": 1997, "memo": "", "id": 260}, {"cat": "歌ってみたい", "title": "帰りたくなったよ", "artist": "いきものがかり", "key": "", "voice": "グループ", "duet": false, "year": 2008, "memo": "", "id": 261}, {"cat": "歌ってみたい", "title": "スマイル", "artist": "D.W.ニコルズ", "key": "", "voice": "グループ", "duet": false, "year": 2009, "memo": "", "id": 262}, {"cat": "歌ってみたい", "title": "ずっと好きだった", "artist": "斉藤和義", "key": "", "voice": "男性", "duet": false, "year": 2010, "memo": "", "id": 263}, {"cat": "歌ってみたい", "title": "歩いて帰ろう", "artist": "斉藤和義", "key": "", "voice": "男性", "duet": false, "year": 1994, "memo": "", "id": 264}, {"cat": "歌ってみたい", "title": "女々しくて", "artist": "ゴールデンボンバー", "key": "", "voice": "グループ", "duet": false, "year": 2009, "memo": "", "id": 265}, {"cat": "歌ってみたい", "title": "新宝島", "artist": "サカナクション", "key": "", "voice": "グループ", "duet": false, "year": 2015, "memo": "", "id": 266}, {"cat": "歌ってみたい", "title": "怪獣", "artist": "サカナクション", "key": "", "voice": "グループ", "duet": false, "year": 2023, "memo": "", "id": 267}, {"cat": "歌ってみたい", "title": "（歌手）Saucy Dog", "artist": "Saucy Dog", "key": "", "voice": "グループ", "duet": false, "year": null, "memo": "気になる歌手", "id": 268}, {"cat": "歌ってみたい", "title": "（歌手）Kis-My-Ft2", "artist": "Kis-My-Ft2", "key": "", "voice": "グループ", "duet": false, "year": null, "memo": "気になる歌手", "id": 269}, {"cat": "歌ってみたい", "title": "（歌手）Novelbright", "artist": "NovelBright", "key": "", "voice": "グループ", "duet": false, "year": null, "memo": "気になる歌手 ノラ?", "id": 270}, {"cat": "歌ってみたい", "title": "（歌手）LiSA", "artist": "LiSA", "key": "", "voice": "女性", "duet": false, "year": null, "memo": "気になる歌手 アニメソング", "id": 271}, {"cat": "歌ってみたい", "title": "（歌手）ビッケブランカ", "artist": "ビッケブランカ", "key": "", "voice": "男性", "duet": false, "year": null, "memo": "気になる歌手 べべチオ?", "id": 272}, {"cat": "歌ってみたい", "title": "（歌手）SEKAI NO OWARI", "artist": "SEKAI NO OWARI", "key": "", "voice": "グループ", "duet": false, "year": null, "memo": "気になる歌手", "id": 273}, {"cat": "歌ってみたい", "title": "オレンジ村から春へ", "artist": "りりィ", "key": "", "voice": "女性", "duet": false, "year": 1973, "memo": "早く帰って〜", "id": 274}, {"cat": "リクエスト", "title": "人生の扉", "artist": "竹内まりや", "key": "", "voice": "女性", "duet": false, "year": 2007, "memo": "", "id": 275}, {"cat": "リクエスト", "title": "いのちの歌", "artist": "竹内まりや", "key": "", "voice": "女性", "duet": false, "year": 2008, "memo": "", "id": 276}, {"cat": "リクエスト", "title": "366日", "artist": "HY", "key": "", "voice": "グループ", "duet": false, "year": 2008, "memo": "", "id": 277}, {"cat": "リクエスト", "title": "長い間", "artist": "Kiroro", "key": "+4", "voice": "女性", "duet": false, "year": 1997, "memo": "", "id": 278}, {"cat": "リクエスト", "title": "Best Friend", "artist": "Kiroro", "key": "+3", "voice": "女性", "duet": false, "year": 2001, "memo": "ちゅらさん", "id": 279}, {"cat": "リクエスト", "title": "未来へ", "artist": "Kiroro", "key": "", "voice": "女性", "duet": false, "year": 1998, "memo": "", "id": 280}, {"cat": "リクエスト", "title": "瑠璃色の地球", "artist": "松田聖子", "key": "", "voice": "女性", "duet": false, "year": 1986, "memo": "手嶌葵でも", "id": 281}, {"cat": "リクエスト", "title": "明日はきっといい日になる", "artist": "高橋優", "key": "", "voice": "男性", "duet": false, "year": 2011, "memo": "", "id": 282}, {"cat": "リクエスト", "title": "にじいろ", "artist": "絢香", "key": "", "voice": "女性", "duet": false, "year": 2010, "memo": "", "id": 283}, {"cat": "リクエスト", "title": "夢をあきらめないで", "artist": "岡村孝子", "key": "+4", "voice": "女性", "duet": false, "year": 1987, "memo": "", "id": 284}, {"cat": "リクエスト", "title": "WIND", "artist": "倖田來未", "key": "", "voice": "女性", "duet": false, "year": 2003, "memo": "", "id": 285}, {"cat": "リクエスト", "title": "君をのせて", "artist": "井上あずみ", "key": "", "voice": "女性", "duet": false, "year": 1986, "memo": "アニメ（天空の城ラピュタ）", "id": 286}, {"cat": "歌える", "title": "点描の唄", "artist": "美波", "key": "", "voice": "グループ", "duet": true, "year": 2018, "memo": "sumika feat. 美波", "id": 287}, {"cat": "歌える", "title": "勿忘（わすれな）", "artist": "Awesome City Club", "key": "", "voice": "グループ", "duet": true, "year": 2021, "memo": "", "id": 288}, {"cat": "歌える", "title": "真夏の果実（デュエット版）", "artist": "サザンオールスターズ", "key": "-2", "voice": "グループ", "duet": true, "year": 1990, "memo": "", "id": 289}, {"cat": "歌える", "title": "いつでも夢を", "artist": "橋幸夫・吉永小百合", "key": "", "voice": "", "duet": true, "year": 1962, "memo": "CM", "id": 290}, {"cat": "歌える", "title": "今を抱きしめて", "artist": "BOØWY", "key": "-1", "voice": "グループ", "duet": true, "year": 1988, "memo": "", "id": 291}, {"cat": "歌える", "title": "ロンリー・チャップリン", "artist": "鈴木聖美 with Rats&Star", "key": "", "voice": "", "duet": true, "year": 1987, "memo": "", "id": 292}, {"cat": "歌える", "title": "愛が生まれた日", "artist": "藤谷美和子・大内義昭", "key": "", "voice": "", "duet": true, "year": 1994, "memo": "", "id": 293}, {"cat": "歌える", "title": "ふたりの愛ランド", "artist": "石川優子とチャゲ", "key": "", "voice": "", "duet": true, "year": 1984, "memo": "", "id": 294}, {"cat": "歌える", "title": "忘れていいの", "artist": "研ナオコ", "key": "", "voice": "女性", "duet": true, "year": 1985, "memo": "谷村新司", "id": 295}, {"cat": "歌える", "title": "別れても好きな人", "artist": "ロス・インディオス&シルヴィア", "key": "", "voice": "", "duet": true, "year": 1979, "memo": "", "id": 296}, {"cat": "歌える", "title": "居酒屋", "artist": "五木ひろし・木の実ナナ", "key": "", "voice": "", "duet": true, "year": 1982, "memo": "", "id": 297}, {"cat": "歌える", "title": "結婚するって本当ですか", "artist": "ダ・カーポ", "key": "", "voice": "グループ", "duet": true, "year": 1974, "memo": "", "id": 298}, {"cat": "歌える", "title": "この木なんの木", "artist": "ヒデ夕樹・朝礼スズキ", "key": "", "voice": "男性", "duet": false, "year": null, "memo": "CM（日立）", "id": 299}, {"cat": "歌える", "title": "ひといきつきながら", "artist": "山本彩", "key": "+3", "voice": "女性", "duet": false, "year": null, "memo": "CM ※生沢佑一版 -1", "id": 300}, {"cat": "歌える", "title": "みんながみんな英雄", "artist": "AI", "key": "", "voice": "女性", "duet": false, "year": 2016, "memo": "CM（au）", "id": 301}, {"cat": "歌える", "title": "見えないスタート", "artist": "BENI", "key": "", "voice": "女性", "duet": false, "year": null, "memo": "CM（ボートレース）", "id": 302}, {"cat": "歌える", "title": "今日を愛する", "artist": "", "key": "", "voice": "", "duet": false, "year": null, "memo": "CM（ライオン）", "id": 303}, {"cat": "歌える", "title": "ゲッターロボ", "artist": "ささきいさお", "key": "", "voice": "男性", "duet": false, "year": 1974, "memo": "アニソン", "id": 304}, {"cat": "歌える", "title": "タイガーマスク", "artist": "新田洋", "key": "", "voice": "男性", "duet": false, "year": 1969, "memo": "アニソン", "id": 305}, {"cat": "歌える", "title": "ガッチャマン", "artist": "子門真人", "key": "", "voice": "男性", "duet": false, "year": 1972, "memo": "アニソン", "id": 306}, {"cat": "歌ってみたい", "title": "虎に翼 テーマ曲", "artist": "米津玄師", "key": "", "voice": "男性", "duet": false, "year": 2024, "memo": "さよーならまたいつか!", "id": 307}, {"cat": "歌える", "title": "Don't Stop Me Now", "artist": "Queen", "key": "", "voice": "グループ", "duet": false, "year": 1979, "memo": "英語", "id": 308}, {"cat": "歌える", "title": "If", "artist": "Bread", "key": "", "voice": "グループ", "duet": false, "year": 1971, "memo": "英語", "id": 309}, {"cat": "歌える", "title": "The Loco-Motion", "artist": "Grand Funk Railroad", "key": "", "voice": "グループ", "duet": false, "year": 1974, "memo": "英語", "id": 310}, {"cat": "歌える", "title": "Let It Be", "artist": "The Beatles", "key": "", "voice": "グループ", "duet": false, "year": 1970, "memo": "英語", "id": 311}, {"cat": "歌える", "title": "Take It Easy", "artist": "Eagles", "key": "", "voice": "グループ", "duet": false, "year": 1972, "memo": "英語", "id": 312}, {"cat": "歌える", "title": "君の瞳に恋してる", "artist": "ボーイズ・タウン・ギャング", "key": "-1", "voice": "グループ", "duet": false, "year": 1982, "memo": "英語 Can't Take My Eyes Off You", "id": 313}, {"cat": "歌える", "title": "Brown Sugar", "artist": "The Rolling Stones", "key": "", "voice": "グループ", "duet": false, "year": 1971, "memo": "英語", "id": 314}, {"cat": "歌える", "title": "プロジェクトA", "artist": "ジャッキー・チェン", "key": "", "voice": "男性", "duet": false, "year": 1983, "memo": "英語?", "id": 315}, {"cat": "歌える", "title": "Saturday Night", "artist": "Bay City Rollers", "key": "", "voice": "グループ", "duet": false, "year": 1975, "memo": "英語 yesterday's hero -1 練習要", "id": 316}, {"cat": "友人", "title": "雨のブルース", "artist": "淡谷のり子", "key": "", "voice": "女性", "duet": false, "year": 1938, "memo": "母が唄える歌", "id": 317}, {"cat": "友人", "title": "別れのブルース", "artist": "淡谷のり子", "key": "", "voice": "女性", "duet": false, "year": 1937, "memo": "母が唄える歌", "id": 318}, {"cat": "友人", "title": "君忘れじのブルース", "artist": "淡谷のり子", "key": "", "voice": "女性", "duet": false, "year": 1948, "memo": "母が唄える歌", "id": 319}, {"cat": "友人", "title": "川の流れのように", "artist": "美空ひばり", "key": "", "voice": "女性", "duet": false, "year": 1989, "memo": "母が唄える歌", "id": 320}, {"cat": "友人", "title": "津軽海峡・冬景色", "artist": "石川さゆり", "key": "", "voice": "女性", "duet": false, "year": 1977, "memo": "母が唄える歌", "id": 321}, {"cat": "歌える", "title": "寿司を待つ君", "artist": "", "key": "", "voice": "", "duet": false, "year": null, "memo": "余興（なごり雪の替え歌）", "id": 322}, {"cat": "歌える", "title": "なごり寿司", "artist": "嘉門達夫", "key": "-1", "voice": "男性", "duet": false, "year": null, "memo": "余興 替え歌 -1〜-2", "id": 323}, {"cat": "歌える", "title": "替え歌クラシックメドレー", "artist": "嘉門達夫", "key": "", "voice": "男性", "duet": false, "year": null, "memo": "余興", "id": 324}, {"cat": "歌える", "title": "青春フォーク替え歌メドレー", "artist": "嘉門達夫", "key": "", "voice": "男性", "duet": false, "year": null, "memo": "余興", "id": 325}];
+const KEY = 'karaoke_songbook_v1';
+const CATS = ['歌える','歌ってみたい','リクエスト','友人'];
+const CAT_LABEL = {'歌える':'歌える曲','歌ってみたい':'歌ってみたい曲','リクエスト':'リクエストしたい曲','友人':'友人が好きな曲'};
+const CAT_CLASS = {'歌える':'c-sing','歌ってみたい':'c-try','リクエスト':'c-req','友人':'c-fr'};
+
+let songs = load();
+let state = {cat:'all', q:'', voice:'', duet:false, sort:'added'};
+let editingId = null;
+
+function load(){
+  try{ const r = localStorage.getItem(KEY); if(r) return JSON.parse(r); }catch(e){}
+  return JSON.parse(JSON.stringify(SEED));
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(songs)); }catch(e){ toast('保存に失敗しました'); } }
+function nextId(){ return songs.reduce((m,s)=>Math.max(m,s.id||0),0)+1; }
+
+/* ---- キー表示 ---- */
+function keyDir(k){
+  if(!k) return 'none';
+  const t=k.trim();
+  if(t==='±0'||t==='0'||t==='+0'||t==='-0') return 'flat';
+  if(t[0]==='+') return 'up';
+  if(t[0]==='-'||t[0]==='−'||t[0]==='▼') return 'down';
+  return 'flat';
+}
+function keyLabel(k){
+  if(!k) return {v:'原曲',cls:'none',l:'KEY'};
+  const dir=keyDir(k);
+  return {v:k, cls:dir, l: dir==='up'?'上げ':dir==='down'?'下げ':'KEY'};
+}
+
+/* ---- レンダリング ---- */
+function counts(){
+  const c={all:songs.length}; CATS.forEach(x=>c[x]=0);
+  songs.forEach(s=>{ if(c[s.cat]!=null)c[s.cat]++; });
+  return c;
+}
+function renderTabs(){
+  const c=counts();
+  const tabs=[['all','すべて',null]].concat(CATS.map(x=>[x,CAT_LABEL[x],CAT_CLASS[x]]));
+  document.getElementById('tabs').innerHTML = tabs.map(([key,label,cls])=>{
+    const act = state.cat===key ? 'active '+(cls||'') : '';
+    return `<button class="tab ${act}" data-cat="${key}"><span class="dot"></span>${label}<span class="n">${c[key]??0}</span></button>`;
+  }).join('');
+  document.getElementById('totalSub').textContent = c.all+'曲';
+}
+function matchFilter(s){
+  if(state.cat!=='all' && s.cat!==state.cat) return false;
+  if(state.voice && s.voice!==state.voice) return false;
+  if(state.duet && !s.duet) return false;
+  if(state.q){
+    const blob=[s.title,s.artist,s.voice,s.memo,(s.year||''),s.duet?'デュエット':'',CAT_LABEL[s.cat]].join(' ').toLowerCase();
+    if(!state.q.toLowerCase().split(/\s+/).every(w=>blob.includes(w))) return false;
+  }
+  return true;
+}
+function sortList(arr){
+  const by=state.sort;
+  const cp=arr.slice();
+  if(by==='added') return cp.sort((a,b)=>(a.id||0)-(b.id||0));
+  if(by==='title') return cp.sort((a,b)=>(a.title||'').localeCompare(b.title||'','ja'));
+  if(by==='artist') return cp.sort((a,b)=>(a.artist||'').localeCompare(b.artist||'','ja'));
+  if(by==='year') return cp.sort((a,b)=>(b.year||0)-(a.year||0));
+  return cp;
+}
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function render(){
+  renderTabs();
+  const filtered = sortList(songs.filter(matchFilter));
+  const list=document.getElementById('list');
+  const cnt=document.getElementById('count');
+  if(filtered.length===0){
+    cnt.textContent='';
+    list.innerHTML=`<div class="empty"><div class="em">🎶</div><p>該当する曲がありません</p>
+      <p style="font-size:12.5px;color:var(--muted2)">検索条件を変えるか「＋新規登録」で曲を追加してください</p></div>`;
+    return;
+  }
+  cnt.innerHTML=`<b>${filtered.length}</b> 曲を表示中`;
+  list.innerHTML = filtered.map(s=>{
+    const cls=CAT_CLASS[s.cat]||'';
+    const k=keyLabel(s.key);
+    const tags=[];
+    tags.push(`<span class="tag cat ${cls}">${CAT_LABEL[s.cat]||s.cat}</span>`);
+    if(s.voice) tags.push(`<span class="tag voice">${esc(s.voice)}</span>`);
+    if(s.duet) tags.push(`<span class="tag duet">デュエット</span>`);
+    if(s.year) tags.push(`<span class="tag year">${esc(s.year)}年</span>`);
+    return `<div class="card ${cls}" data-id="${s.id}">
+      <div class="top">
+        <div style="flex:1;min-width:0">
+          <div class="title">${esc(s.title)}</div>
+          ${s.artist?`<div class="artist">${esc(s.artist)}</div>`:''}
+        </div>
+        <div class="keychip ${k.cls}"><span class="kv">${esc(k.v)}</span><span class="kl">${k.l}</span></div>
+      </div>
+      <div class="tags">${tags.join('')}</div>
+      ${s.memo?`<div class="memo">${esc(s.memo)}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+/* ---- フォーム ---- */
+let form = {cat:'歌える', voice:'', duet:false};
+function setCat(c){ form.cat=c; document.querySelectorAll('#catRow .catpick').forEach(b=>{
+  b.classList.toggle('sel', b.dataset.cat===c); }); }
+function setVoice(v){ form.voice=v; document.querySelectorAll('#voiceRow .vpick').forEach(b=>{
+  b.classList.toggle('sel', b.dataset.voice===v); }); }
+function setDuet(d){ form.duet=!!d; document.querySelectorAll('#duetRow .vpick').forEach(b=>{
+  b.classList.toggle('sel', (b.dataset.duet==='1')===form.duet); }); }
+
+function openEdit(song){
+  editingId = song ? song.id : null;
+  document.getElementById('editTitle').textContent = song ? '曲を編集' : '新規登録';
+  document.getElementById('delRow').style.display = song ? 'flex' : 'none';
+  const d = song || {cat:(state.cat!=='all'?state.cat:'歌える'),title:'',artist:'',key:'',voice:'',duet:false,year:'',memo:''};
+  setCat(d.cat); setVoice(d.voice||''); setDuet(d.duet);
+  document.getElementById('f_title').value = d.title||'';
+  document.getElementById('f_artist').value = d.artist||'';
+  document.getElementById('f_key').value = d.key||'';
+  document.getElementById('f_year').value = d.year||'';
+  document.getElementById('f_memo').value = d.memo||'';
+  openSheet('editOverlay');
+}
+function readForm(){
+  return {
+    cat: form.cat,
+    title: document.getElementById('f_title').value.trim(),
+    artist: document.getElementById('f_artist').value.trim(),
+    key: document.getElementById('f_key').value.trim(),
+    voice: form.voice,
+    duet: form.duet,
+    year: parseInt(document.getElementById('f_year').value)||null,
+    memo: document.getElementById('f_memo').value.trim()
+  };
+}
+function saveEdit(){
+  const d=readForm();
+  if(!d.title){ toast('曲名を入力してください'); return; }
+  if(editingId){
+    const s=songs.find(x=>x.id===editingId); Object.assign(s,d);
+    toast('保存しました');
+  }else{
+    d.id=nextId(); songs.push(d); toast('追加しました');
+  }
+  save(); render(); closeSheet('editOverlay');
+}
+function deleteSong(){
+  if(!editingId) return;
+  if(!confirm('この曲を削除しますか？')) return;
+  songs=songs.filter(x=>x.id!==editingId);
+  save(); render(); closeSheet('editOverlay'); toast('削除しました');
+}
+
+/* キーステッパー */
+function stepKey(delta){
+  const inp=document.getElementById('f_key'); let t=inp.value.trim();
+  let n=0;
+  if(t==='±0'||t===''||t==='0') n=0;
+  else { const m=t.replace('▼','-').replace('−','-').match(/-?\d+/); n=m?parseInt(m[0]):0; }
+  n+=delta;
+  inp.value = n===0?'±0':(n>0?'+'+n:String(n));
+}
+
+/* ---- シート開閉 ---- */
+function openSheet(id){ document.getElementById(id).classList.add('open'); document.body.style.overflow='hidden'; }
+function closeSheet(id){ document.getElementById(id).classList.remove('open'); document.body.style.overflow=''; }
+
+/* ---- トースト ---- */
+let toastT;
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),1800); }
+
+/* ---- 入出力 ---- */
+function doExport(){
+  const blob=new Blob([JSON.stringify(songs,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob); const a=document.createElement('a');
+  const d=new Date(); const ymd=d.getFullYear()+('0'+(d.getMonth()+1)).slice(-2)+('0'+d.getDate()).slice(-2);
+  a.href=url; a.download='karaoke_'+ymd+'.json'; a.click(); URL.revokeObjectURL(url);
+  toast('バックアップを保存しました');
+}
+function doImport(file){
+  const r=new FileReader();
+  r.onload=()=>{ try{ const data=JSON.parse(r.result);
+    if(!Array.isArray(data)) throw 0;
+    songs=data.map((s,i)=>Object.assign({id:i+1,cat:'歌える',title:'',artist:'',key:'',voice:'',duet:false,year:null,memo:''},s));
+    save(); render(); closeSheet('menuOverlay'); toast('読み込みました（'+songs.length+'曲）');
+  }catch(e){ toast('ファイルを読み込めませんでした'); } };
+  r.readAsText(file);
+}
+function doCopyText(){
+  const filtered=sortList(songs.filter(matchFilter));
+  const lines=filtered.map(s=>{
+    let l='・'+s.title; if(s.artist)l+='／'+s.artist; if(s.key)l+=' ['+s.key+']';
+    const ex=[]; if(s.voice)ex.push(s.voice); if(s.duet)ex.push('デュエット'); if(s.year)ex.push(s.year+'年');
+    if(ex.length)l+=' '+ex.join(' '); if(s.memo)l+=' ※'+s.memo; return l;
+  });
+  const txt='【カラオケ曲リスト】\n'+lines.join('\n');
+  navigator.clipboard?.writeText(txt).then(()=>{toast('コピーしました');closeSheet('menuOverlay');},
+    ()=>{ prompt('コピーしてください', txt); });
+}
+function doReset(){
+  if(!confirm('編集内容をすべて消して初期データに戻しますか？')) return;
+  songs=JSON.parse(JSON.stringify(SEED)); save(); render(); closeSheet('menuOverlay'); toast('初期データに戻しました');
+}
+
+/* ---- イベント ---- */
+document.getElementById('tabs').addEventListener('click',e=>{
+  const t=e.target.closest('.tab'); if(!t)return; state.cat=t.dataset.cat; render(); blurT(t);});
+document.getElementById('filters').addEventListener('click',e=>{
+  const c=e.target.closest('.chip'); if(!c)return;
+  if(c.dataset.voice!=null){ state.voice = state.voice===c.dataset.voice?'':c.dataset.voice;
+    document.querySelectorAll('#filters .chip[data-voice]').forEach(x=>x.classList.toggle('on',x.dataset.voice===state.voice)); }
+  else if(c.dataset.duet){ state.duet=!state.duet; c.classList.toggle('on',state.duet); }
+  render(); blurT(c);
+});
+document.getElementById('sortSel').addEventListener('change',e=>{state.sort=e.target.value;render();});
+const sb=document.getElementById('search');
+sb.addEventListener('input',e=>{ state.q=e.target.value.trim();
+  document.getElementById('clrBtn').classList.toggle('on',!!state.q); render(); });
+document.getElementById('clrBtn').addEventListener('click',()=>{ sb.value='';state.q='';
+  document.getElementById('clrBtn').classList.remove('on'); render(); sb.focus(); });
+
+document.getElementById('list').addEventListener('click',e=>{
+  const card=e.target.closest('.card'); if(!card)return;
+  const s=songs.find(x=>x.id===parseInt(card.dataset.id)); if(s)openEdit(s);});
+document.getElementById('addFab').addEventListener('click',()=>openEdit(null));
+
+document.getElementById('catRow').addEventListener('click',e=>{const b=e.target.closest('.catpick');if(b){setCat(b.dataset.cat);blurT(b);}});
+document.getElementById('voiceRow').addEventListener('click',e=>{const b=e.target.closest('.vpick');if(b){setVoice(b.dataset.voice);blurT(b);}});
+document.getElementById('duetRow').addEventListener('click',e=>{const b=e.target.closest('.vpick');if(b){setDuet(b.dataset.duet==='1');blurT(b);}});
+document.getElementById('keyPlus').addEventListener('click',()=>stepKey(1));
+document.getElementById('keyMinus').addEventListener('click',()=>stepKey(-1));
+document.getElementById('editSave').addEventListener('click',saveEdit);
+document.getElementById('editCancel').addEventListener('click',()=>closeSheet('editOverlay'));
+document.getElementById('editDelete').addEventListener('click',deleteSong);
+
+document.getElementById('menuBtn').addEventListener('click',()=>openSheet('menuOverlay'));
+document.getElementById('menuClose').addEventListener('click',()=>closeSheet('menuOverlay'));
+document.getElementById('mExport').addEventListener('click',doExport);
+document.getElementById('mImport').addEventListener('click',()=>document.getElementById('fileInput').click());
+document.getElementById('fileInput').addEventListener('change',e=>{if(e.target.files[0])doImport(e.target.files[0]);e.target.value='';});
+document.getElementById('mText').addEventListener('click',doCopyText);
+document.getElementById('mReset').addEventListener('click',doReset);
+
+[ 'editOverlay','menuOverlay' ].forEach(id=>{
+  document.getElementById(id).addEventListener('click',e=>{ if(e.target.id===id) closeSheet(id); });
+});
+function blurT(el){ if(el&&el.blur) el.blur(); }
+
+render();
+</script>
+</body>
+</html>
